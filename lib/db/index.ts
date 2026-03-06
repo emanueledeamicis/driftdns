@@ -1,4 +1,7 @@
-import Database from "better-sqlite3";
+// Turbopack native binary bypass
+const Database = process.env.NEXT_PHASE === "phase-production-build"
+    ? function () { return {} }
+    : eval(`require("better-sqlite3")`);
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import path from "path";
 import * as schema from "./schema";
