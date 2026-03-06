@@ -21,7 +21,6 @@ export default function ProvidersPage() {
     const [cfToken, setCfToken] = useState("");
     const [r53Access, setR53Access] = useState("");
     const [r53Secret, setR53Secret] = useState("");
-    const [r53Region, setR53Region] = useState("us-east-1");
     const [submitting, setSubmitting] = useState(false);
 
     async function fetchProviders() {
@@ -65,7 +64,7 @@ export default function ProvidersPage() {
         if (type === "cloudflare") {
             credentials = { apiToken: cfToken };
         } else {
-            credentials = { accessKeyId: r53Access, secretAccessKey: r53Secret, region: r53Region };
+            credentials = { accessKeyId: r53Access, secretAccessKey: r53Secret };
         }
 
         try {
@@ -153,10 +152,6 @@ export default function ProvidersPage() {
                                         <div className="grid gap-2">
                                             <Label>Secret Access Key</Label>
                                             <Input type="password" value={r53Secret} onChange={(e) => setR53Secret(e.target.value)} required />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>Region</Label>
-                                            <Input type="text" value={r53Region} onChange={(e) => setR53Region(e.target.value)} />
                                         </div>
                                     </div>
                                 )}

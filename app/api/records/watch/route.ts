@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
-import { watchedRecords, updateLogs } from "@/lib/db/schema";
+import { watchedRecords, updateLogs, providers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getPublicIp } from "@/lib/ip";
+import { getProvider } from "@/lib/providers/factory";
 
 export async function PATCH(request: Request) {
     try {
@@ -26,6 +28,8 @@ export async function PATCH(request: Request) {
                 )
                 .get();
 
+            let recordInternalId = existing?.id || crypto.randomUUID();
+
             if (existing) {
                 // Update schedule/enabled status
                 db.update(watchedRecords)
@@ -39,7 +43,7 @@ export async function PATCH(request: Request) {
                 // Insert new watched record
                 db.insert(watchedRecords)
                     .values({
-                        id: crypto.randomUUID(),
+                        id: recordInternalId,
                         providerId,
                         zoneId,
                         zoneName,
@@ -47,9 +51,47 @@ export async function PATCH(request: Request) {
                         recordName,
                         schedule: schedule || "*/30 * * * *",
                         enabled: 1,
-                        lastKnownIp: null, // will be populated by the scheduler
+                        lastKnownIp: null, // will be populated below
                     })
                     .run();
+            }
+
+            // --- Immediate update execution ---
+            try {
+                const provider = db.select().from(providers).where(eq(providers.id, providerId)).get();
+                if (provider) {
+                    const currentIp = await getPublicIp();
+
+                    if (!existing || existing.lastKnownIp !== currentIp) {
+                        const dnsProvider = getProvider(provider.type, provider.encryptedCredentials);
+                        await dnsProvider.updateRecord(zoneId, recordId, currentIp, recordName);
+
+                        db.insert(updateLogs).values({
+                            id: crypto.randomUUID(),
+                            watchedRecordId: recordInternalId,
+                            oldIp: existing?.lastKnownIp || null,
+                            newIp: currentIp,
+                            success: 1,
+                            message: "Immediate initialization update successful",
+                        }).run();
+
+                        db.update(watchedRecords)
+                            .set({ lastKnownIp: currentIp })
+                            .where(eq(watchedRecords.id, recordInternalId))
+                            .run();
+                    }
+                }
+            } catch (err) {
+                console.error("[Watch Route] Immediate update failed:", err);
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                db.insert(updateLogs).values({
+                    id: crypto.randomUUID(),
+                    watchedRecordId: recordInternalId,
+                    oldIp: existing?.lastKnownIp || null,
+                    newIp: null, // we don't know if the new IP was applied if it failed
+                    success: 0,
+                    message: `Immediate init failed: ${errorMessage}`,
+                }).run();
             }
         } else if (action === "unwatch") {
             const existing = db
@@ -71,9 +113,6 @@ export async function PATCH(request: Request) {
         } else {
             return NextResponse.json({ error: "Invalid action" }, { status: 400 });
         }
-
-        // Since we changed the watched records, ideally we'd signal the scheduler. 
-        // For MVP, user must restart container or wait for sync (as per specs).
 
         return NextResponse.json({ success: true });
     } catch (error) {

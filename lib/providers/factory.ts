@@ -20,15 +20,14 @@ export function getProvider(
     if (type === "route53") {
         if (
             !credentials.accessKeyId ||
-            !credentials.secretAccessKey ||
-            !credentials.region
+            !credentials.secretAccessKey
         ) {
             throw new Error("Missing credentials for Route53 provider");
         }
         return new Route53Provider(
             credentials.accessKeyId,
             credentials.secretAccessKey,
-            credentials.region
+            "us-east-1"
         );
     }
 

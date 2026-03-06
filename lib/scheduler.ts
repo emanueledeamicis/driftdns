@@ -34,17 +34,17 @@ export function initScheduler() {
                 continue;
             }
 
-            const task = cron.schedule(record.schedule, async () => {
-                console.log(`[Scheduler] Running check for ${record.recordName}...`);
+            const executeCheck = async (force = false) => {
+                console.log(`[Scheduler] Running check for ${record.recordName}... (force=${force})`);
                 try {
                     const currentIp = await getPublicIp();
 
-                    if (currentIp === record.lastKnownIp) {
+                    if (!force && currentIp === record.lastKnownIp) {
                         console.log(`[Scheduler] IP unchanged for ${record.recordName} (${currentIp}). Skipping.`);
                         return;
                     }
 
-                    console.log(`[Scheduler] IP changed for ${record.recordName}: ${record.lastKnownIp || "none"} -> ${currentIp}. Updating...`);
+                    console.log(`[Scheduler] IP check for ${record.recordName}: ${record.lastKnownIp || "none"} -> ${currentIp}. Updating...`);
 
                     const dnsProvider = getProvider(provider.type, provider.encryptedCredentials);
                     await dnsProvider.updateRecord(record.zoneId, record.recordId, currentIp, record.recordName);
@@ -83,9 +83,13 @@ export function initScheduler() {
                         })
                         .run();
                 }
-            });
+            };
 
+            const task = cron.schedule(record.schedule, () => executeCheck(false));
             scheduledTasks.push(task);
+
+            // Execute the check immediately on boot/registration
+            executeCheck(true);
         }
     } catch (error) {
         console.error("[Scheduler] Error during initialization:", error);
