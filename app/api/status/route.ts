@@ -10,20 +10,20 @@ export async function GET() {
         const ip = await getPublicIp();
 
         // Contiamo quanti record sono abilitati per il DDNS
-        const enabledRecords = db
+        const enabledRecords = await db
             .select()
             .from(watchedRecords)
             .where(eq(watchedRecords.enabled, 1))
             .all();
 
         // Otteniamo anche il numero totale di record inseriti a db (anche disabilitati)
-        const totalRecords = db
+        const totalRecords = await db
             .select()
             .from(watchedRecords)
             .all();
 
         // L'ultimo log per sapere a che ora è stato il check più recente
-        const lastLog = db
+        const lastLog = await db
             .select()
             .from(updateLogs)
             .orderBy(desc(updateLogs.timestamp))

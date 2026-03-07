@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-route-53": "^3.1002.0",
-    "better-sqlite3": "^12.6.2",
+    "@libsql/client": "^0.17.0",
     "class-variance-authority": "^0.7.1",
     "cloudflare": "^5.2.0",
     "clsx": "^2.1.1",
@@ -26,7 +26,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
     "@types/react": "^19",

@@ -16,7 +16,7 @@ export async function PATCH(request: Request) {
         }
 
         if (action === "watch") {
-            const existing = db
+            const existing = await db
                 .select()
                 .from(watchedRecords)
                 .where(
@@ -32,7 +32,7 @@ export async function PATCH(request: Request) {
 
             if (existing) {
                 // Update schedule/enabled status
-                db.update(watchedRecords)
+                await db.update(watchedRecords)
                     .set({
                         schedule: schedule || existing.schedule,
                         enabled: 1,
@@ -41,7 +41,7 @@ export async function PATCH(request: Request) {
                     .run();
             } else {
                 // Insert new watched record
-                db.insert(watchedRecords)
+                await db.insert(watchedRecords)
                     .values({
                         id: recordInternalId,
                         providerId,
@@ -58,7 +58,7 @@ export async function PATCH(request: Request) {
 
             // --- Immediate update execution ---
             try {
-                const provider = db.select().from(providers).where(eq(providers.id, providerId)).get();
+                const provider = await db.select().from(providers).where(eq(providers.id, providerId)).get();
                 if (provider) {
                     const currentIp = await getPublicIp();
 
@@ -66,7 +66,7 @@ export async function PATCH(request: Request) {
                         const dnsProvider = getProvider(provider.type, provider.encryptedCredentials);
                         await dnsProvider.updateRecord(zoneId, recordId, currentIp, recordName);
 
-                        db.insert(updateLogs).values({
+                        await db.insert(updateLogs).values({
                             id: crypto.randomUUID(),
                             watchedRecordId: recordInternalId,
                             oldIp: existing?.lastKnownIp || null,
@@ -75,7 +75,7 @@ export async function PATCH(request: Request) {
                             message: "Immediate initialization update successful",
                         }).run();
 
-                        db.update(watchedRecords)
+                        await db.update(watchedRecords)
                             .set({ lastKnownIp: currentIp })
                             .where(eq(watchedRecords.id, recordInternalId))
                             .run();
@@ -84,7 +84,7 @@ export async function PATCH(request: Request) {
             } catch (err) {
                 console.error("[Watch Route] Immediate update failed:", err);
                 const errorMessage = err instanceof Error ? err.message : String(err);
-                db.insert(updateLogs).values({
+                await db.insert(updateLogs).values({
                     id: crypto.randomUUID(),
                     watchedRecordId: recordInternalId,
                     oldIp: existing?.lastKnownIp || null,
@@ -94,7 +94,7 @@ export async function PATCH(request: Request) {
                 }).run();
             }
         } else if (action === "unwatch") {
-            const existing = db
+            const existing = await db
                 .select()
                 .from(watchedRecords)
                 .where(
@@ -107,7 +107,7 @@ export async function PATCH(request: Request) {
                 .get();
 
             if (existing) {
-                db.delete(watchedRecords).where(eq(watchedRecords.id, existing.id)).run();
+                await db.delete(watchedRecords).where(eq(watchedRecords.id, existing.id)).run();
                 // Logs are cascade deleted
             }
         } else {

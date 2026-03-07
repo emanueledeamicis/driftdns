@@ -2,7 +2,7 @@ export async function register() {
     if (process.env.NEXT_PHASE === "phase-production-build") return;
 
     if (process.env.NEXT_RUNTIME === "nodejs") {
-        const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
+        const { migrate } = await import("drizzle-orm/libsql/migrator");
         const { db } = await import("./lib/db");
         const path = await import("path");
 
@@ -16,6 +16,6 @@ export async function register() {
 
         // Inizializza lo scheduler DDNS
         const { initScheduler } = await import("./lib/scheduler");
-        initScheduler();
+        await initScheduler();
     }
 }

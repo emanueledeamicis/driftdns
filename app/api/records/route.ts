@@ -15,7 +15,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Missing providerId or zoneId param" }, { status: 400 });
         }
 
-        const providerRecord = db
+        const providerRecord = await db
             .select()
             .from(providers)
             .where(eq(providers.id, providerId))
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
         const records = await dnsProvider.getRecords(zoneId);
 
         // Fetch DB records to check which ones are watched
-        const watched = db
+        const watched = await db
             .select({
                 recordId: watchedRecords.recordId,
                 enabled: watchedRecords.enabled,

@@ -16,7 +16,7 @@ export async function DELETE(
         }
 
         // Cascade delete on watched_records and update_logs is handled by SQLite foreign keys (PRAGMA foreign_keys = ON)
-        db.delete(providers).where(eq(providers.id, id)).run();
+        await db.delete(providers).where(eq(providers.id, id)).run();
 
         return NextResponse.json({ success: true });
     } catch (error) {

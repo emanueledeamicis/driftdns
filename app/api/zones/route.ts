@@ -14,7 +14,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Missing providerId param" }, { status: 400 });
         }
 
-        const providerRecord = db
+        const providerRecord = await db
             .select()
             .from(providers)
             .where(eq(providers.id, providerId))

@@ -7,7 +7,7 @@ import { encrypt } from "@/lib/crypto";
 
 export async function GET() {
     try {
-        const list = db.select({
+        const list = await db.select({
             id: providers.id,
             type: providers.type,
             name: providers.name,
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
         const id = crypto.randomUUID();
 
-        db.insert(providers).values({
+        await db.insert(providers).values({
             id,
             type,
             name,

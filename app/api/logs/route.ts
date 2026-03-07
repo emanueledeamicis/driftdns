@@ -10,7 +10,7 @@ export async function GET(request: Request) {
         const limitParam = searchParams.get("limit") || "100";
         const limit = parseInt(limitParam, 10);
 
-        const logs = db
+        const logs = await db
             .select({
                 id: updateLogs.id,
                 timestamp: updateLogs.timestamp,

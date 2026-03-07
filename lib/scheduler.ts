@@ -8,7 +8,7 @@ import { getProvider } from "./providers/factory";
 // Mantieni i task attivi in memoria per poterli cancellare in caso di ricaricamento (opzionale per v1, ma utile in sviluppo)
 const scheduledTasks: cron.ScheduledTask[] = [];
 
-export function initScheduler() {
+export async function initScheduler() {
     console.log("[Scheduler] Initializing...");
 
     // Ferma tutti i task esistenti se presente (utile per hot reload in dev)
@@ -16,7 +16,7 @@ export function initScheduler() {
     scheduledTasks.length = 0;
 
     try {
-        const records = db
+        const records = await db
             .select({
                 record: watchedRecords,
                 provider: providers,
