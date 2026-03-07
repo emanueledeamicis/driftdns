@@ -12,7 +12,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # We need python/make/g++ in builder too in case Next.js triggers native rebuilds or postinstall scripts
 RUN apk add --no-cache python3 make g++
-RUN corepack enable pnpm && pnpm build
+RUN corepack enable pnpm \
+    && pnpm rebuild better-sqlite3 \
+    && pnpm build
 
 FROM base AS runner
 ENV NODE_ENV=production
