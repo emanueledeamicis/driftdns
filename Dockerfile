@@ -22,6 +22,9 @@ ENV NODE_ENV=production
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+# Ensure native better-sqlite3 bindings are present at runtime.
+# Next standalone tracing can miss *.node artifacts loaded dynamically.
+COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 
 # Data directory for SQLite database
 RUN mkdir -p /app/data && chown -R node:node /app/data
