@@ -4,7 +4,7 @@ services:
     build: .
     container_name: driftdns
     ports:
-      - "3000:3000"
+      - "4000:3000"
     environment:
       - DRIFTDNS_SECRET=change-me-to-a-random-32-char-string
     volumes:
