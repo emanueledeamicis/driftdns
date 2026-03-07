@@ -1,26 +1,51 @@
-// Turbopack native binary bypass
-const Database = process.env.NEXT_PHASE === "phase-production-build"
-    ? function () { return {} }
-    : eval(`require("better-sqlite3")`);
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import fs from "fs";
 import path from "path";
+import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 
-const dbPath =
-    process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "driftdns.db");
+type DbClient = BetterSQLite3Database<typeof schema>;
 
-// Ensure the data directory exists
-import fs from "fs";
-const dir = path.dirname(dbPath);
-if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+let dbInstance: DbClient | undefined;
+
+function initDb(): DbClient {
+    if (dbInstance) {
+        return dbInstance;
+    }
+
+    // Load native modules lazily at runtime to avoid build-time native binding resolution.
+    const Database = eval('require("better-sqlite3")') as new (filename: string) => {
+        pragma?: (value: string) => unknown;
+    };
+    const { drizzle } = eval('require("drizzle-orm/better-sqlite3")') as {
+        drizzle: (client: unknown, options: { schema: typeof schema }) => DbClient;
+    };
+
+    const dbPath =
+        process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "driftdns.db");
+
+    // Ensure the data directory exists
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+
+    const sqlite = new Database(dbPath);
+
+    // Enable WAL mode for better concurrent read performance
+    sqlite.pragma?.("journal_mode = WAL");
+    sqlite.pragma?.("foreign_keys = ON");
+
+    dbInstance = drizzle(sqlite, { schema });
+    return dbInstance;
 }
 
-const sqlite = new Database(dbPath);
+export const db = new Proxy(
+    {},
+    {
+        get(_target, prop) {
+            return initDb()[prop as keyof DbClient];
+        },
+    },
+) as DbClient;
 
-// Enable WAL mode for better concurrent read performance
-sqlite.pragma?.("journal_mode = WAL");
-sqlite.pragma?.("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
-export type DB = typeof db;
+export type DB = DbClient;
